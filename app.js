@@ -70,7 +70,7 @@ app.post("/login/", async (request, response) => {
       response.send({ jwtToken });
     } else {
       response.status(400);
-      response.send("Invalid Password");
+      response.send("Invalid password");
     }
   }
 });
@@ -98,18 +98,31 @@ const authenticateToken = (request, response, next) => {
 };
 
 //GET tweets of user
-app.get("/user/tweets/feed/", async (request, response) => {
-  const getTweetsQuery = `SELECT user.username,tweet.tweet,tweet.date_time
-    FROM user INNER JOIN tweet ON user.user_id = tweet.user_id
-    ORDER BY tweet.date_time DESC LIMIT 4;`;
+const convertJsonToObjectResponse = (jsonData) => {
+  return {
+    username: jsonData["username"],
+    tweet: jsonData["tweet"],
+    dateTime: jsonData["date_time"],
+  };
+};
+
+app.get("/user/tweets/feed/", authenticateToken, async (request, response) => {
+  const { username } = request;
+  const getTweetsQuery = `SELECT T.username,tweet.tweet,tweet.date_time FROM (user INNER JOIN follower ON user.user_id = follower.follower_user_id) AS T INNER JOIN tweet ON tweet.user_id = T.following_user_id WHERE username = '${username}' ORDER BY tweet.date_time DESC LIMIT 4;`;
   const userTweetDetails = await db.all(getTweetsQuery);
-  response.send({
-    username: user["username"],
-    tweet: tweet["tweet"],
-    dateTime: tweet["date_time"],
-  });
+  response.send(
+    //username: user["username"],
+    //tweet: tweet["tweet"],
+    //dateTime: tweet["date_time"],
+    userTweetDetails.map((user) => convertJsonToObjectResponse(user))
+  );
 });
 
-//
+//GET names API
+/*app.get("/user/following/",authenticateToken,(request,response) => {
+    const {username} = request;
+
+});
+*/
 
 module.exports = app;
